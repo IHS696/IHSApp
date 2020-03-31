@@ -1,0 +1,223 @@
+package ihs.figure.rnadom
+
+import android.content.Context
+import android.os.AsyncTask
+import android.os.Bundle
+import android.support.design.widget.Snackbar
+import android.support.v7.app.AppCompatActivity;
+import android.view.Menu
+import android.view.MenuItem
+import android.widget.Toast
+import com.google.firebase.FirebaseException
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.PhoneAuthCredential
+import com.google.firebase.auth.PhoneAuthProvider
+
+import kotlinx.android.synthetic.main.activity_main.*
+import kotlinx.android.synthetic.main.content_main.*
+import org.json.JSONArray
+import java.net.HttpURLConnection
+import java.net.URL
+import java.nio.charset.StandardCharsets
+import java.util.*
+import java.util.concurrent.TimeUnit
+import kotlin.collections.ArrayList
+
+var VerificationCode : String = ""
+class MainActivity : AppCompatActivity() {
+    
+    
+    val Array = ArrayList<Int>()
+
+    var MobileNumber : String = ""
+
+    lateinit var auth : FirebaseAuth
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.content_main)
+        
+
+
+        val Url = URL("https://mysafeinfo.com/api/data?list=presidents&format=json")
+        RestApi().execute(Url.toString())
+
+        auth = FirebaseAuth.getInstance()
+
+
+        val PhoneNo = PhoneNumber.text.toString()
+        Verify(PhoneNo)
+
+        
+       
+    }
+
+
+
+    inner class RestApi : AsyncTask<String, String, String>() {
+
+
+        private fun sendGet(url: String, username: String, password: String ) : String {
+            val connection = URL(url).openConnection() as HttpURLConnection
+
+            val credentials = username + ":" + password
+            val auth = "Basic " + Base64.getEncoder().encodeToString(credentials.toByteArray(Charsets.UTF_8)).replace("\n", "")
+
+
+            connection.addRequestProperty("Authorization", "Basic $auth")
+            connection.connect();
+            val text = connection.inputStream.use { it.reader().use { reader -> reader.readText() } }
+            return text;
+        }
+
+
+        override fun doInBackground(vararg url: String?): String {
+
+            var Text : String
+            val Connection =
+                URL("https://fees.ihsdubai.org/ihswebservice/api/StudentInformation/Get_Student_Information/35493").openConnection() as HttpURLConnection
+
+
+            try {
+
+
+                val UserName : String = ""
+                val Passwrod : String = ""
+                val auth = Base64.getEncoder().encode(("ihsappdevteamconn2050" + ":" + "U3=SvM&XfQfwTExMHp-fqy*^-&*Qw7zphebtvz7pPWUF^YZ_wTMg*wP+gV8TWsQvAAdp*?D2pK+dJKQGx-HXNS3+SwBUsZ4XX--b").toByteArray()).toString(Charsets.UTF_8)
+
+                Connection.addRequestProperty("Authorization", "Basic $auth")
+                Connection.connect();
+
+                Text = Connection.inputStream.use { it.reader().use { reader -> reader.readText() } }
+
+                //Text = Connection.inputStream.use {   it.reader().use { reader -> reader.readText()}  }
+            } finally {
+
+                Connection.disconnect()
+
+            }
+
+
+
+            return Text
+
+        }
+
+        override fun onPostExecute(result: String?) {
+            super.onPostExecute(result)
+            handleJson(result)
+        }
+
+
+        fun handleJson(jsonString : String?)  {
+
+            var jasonArrays = JSONArray(jsonString)
+
+
+
+            var x = 0
+
+            while (x < jasonArrays.length()) {
+
+                val jsonObject = jasonArrays.getJSONObject(x)
+
+
+                LargestNum.text = "${jsonObject.getString("Email")}"
+                break
+
+
+            }
+
+
+
+
+        }
+
+
+
+
+    }
+
+
+
+    lateinit var Callback : PhoneAuthProvider.OnVerificationStateChangedCallbacks
+
+
+    private fun CallBackFunc() {
+        Callback  = object : PhoneAuthProvider.OnVerificationStateChangedCallbacks() {
+
+            override fun onVerificationCompleted(p0: PhoneAuthCredential) {
+
+                signInWithPhoneAuthCredential(p0)
+
+            }
+
+            override fun onVerificationFailed(p0: FirebaseException?) {
+
+
+            }
+
+            override fun onCodeSent(Code: String?, p1: PhoneAuthProvider.ForceResendingToken?) {
+                super.onCodeSent(Code, p1)
+
+                if (Code != null) {
+                    VerificationCode = Code // Test it in the next Page
+
+                }
+
+            }
+
+
+        }
+    }
+
+    private fun Verify(Num : String) {
+        CallBackFunc()
+        PhoneAuthProvider.getInstance().verifyPhoneNumber(
+            Num, // Phone number to verify
+            60, // Timeout duration
+            TimeUnit.SECONDS, // Unit of timeout
+            this, Callback // Activity (for callback binding)
+            )
+
+
+    }
+
+
+
+    private fun signInWithPhoneAuthCredential(credential: PhoneAuthCredential) {
+        auth.signInWithCredential(credential)
+            .addOnCompleteListener(this) { task ->
+                if (task.isSuccessful) {
+                    // Sign in success, update UI with the signed-in user's information
+
+
+                    val user = task.result?.user
+
+                    ToastFunc("Login Success" , this )
+
+
+                    // ...
+                } else {
+                    //TODO Sign in failed, display a message and update the UI
+
+
+                }
+            }
+    }
+
+
+    fun VerifyCode(Code : String) {
+
+
+
+
+
+    }
+}
+fun ToastFunc(Text : String, Cont : Context) {
+
+
+    Toast.makeText(Cont , Text , Toast.LENGTH_LONG).show()
+
+}
